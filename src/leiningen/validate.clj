@@ -37,7 +37,7 @@
     [(str groupId "/" artifactId) version]))
 
 (defn pom-file [project-full-name version]
-  (let [[groupId artifactId] (clojure.string/split project-full-name #"/")
+  (let [[groupId artifactId] (clojure.string/split (str project-full-name) #"/")
         groupId (clojure.string/replace groupId #"\." "/")]
     (str (System/getProperty "user.home") "/.m2/repository/" groupId "/" artifactId "/" version "/"
          artifactId "-" version ".pom")))
@@ -60,15 +60,23 @@
       (println project-full-name version "could not be found, run lein deps or ignore this message")
       nil)))
 
+(defn project-dependency-map*
+  [project]
+  (reduce (fn [acc dependency]
+            (assoc acc project dependency))
+          {}
+          (fetch-dependencies-from-pom project)))
+
 (defn project-dependency-map
   [project dependencies]
   (zipmap dependencies
-          (map fetch-dependencies-from-pom dependencies)))
+          (map  (fn [[dependency version]] (project-dependency-map dependency version)) dependencies)))
 
 (defn validate
   [project & args]
   (let [{:keys [name version dependencies]} project]
-    (-> (validate-project-dependencies [name version] project)
+    (-> (project-dependency-map [name version]
+                                (map #(vector (first %) (second %)) dependencies)) ;; ignore exclusions)
         clojure.pprint/pprint)))
 
 #_(clojure.pprint/pprint (project-dependency-map ["lambdawerk/ess" "0.66.0-SNAPSHOT"]
