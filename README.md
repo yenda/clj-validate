@@ -2,15 +2,17 @@
 
 A Leiningen plugin to validate Clojure project
 
-- checks dependencies
-- checks code quality
+- checks dependencies mismatch
+- checks code quality (todo)
 
 ## Usage
 
-Use this for user-level plugins:
+[![Clojars Project](https://img.shields.io/clojars/v/validate.svg)](https://clojars.org/validate)
 
-Put `[validate "0.1.0-SNAPSHOT"]` into the `:plugins` vector of your `:user`
+Put it into the `:plugins` vector of your `:user`
 profile.
+
+Run this command in the project directory:
 
     $ lein validate
 
