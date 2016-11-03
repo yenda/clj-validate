@@ -1,4 +1,4 @@
-(defproject validate "0.1.0"
+(defproject validate "0.1.1"
   :author "Eric Dvorsak"
   :description "A utility to validate clojure projects"
   :license {:name "Eclipse Public License"
