@@ -1,5 +1,6 @@
 (ns leiningen.validate
-  (:require [clojure.xml :as xml]))
+  (:require [clojure.xml :as xml]
+            [clojure.pprint :as pprint]))
 
 (defn deep-merge
   ([] nil)
@@ -60,24 +61,26 @@
       (println project-full-name version "could not be found, run lein deps or ignore this message")
       nil)))
 
-(defn project-dependency-map*
-  [project]
-  (reduce (fn [acc dependency]
-            (assoc acc project dependency))
-          {}
-          (fetch-dependencies-from-pom project)))
-
 (defn project-dependency-map
-  [project dependencies]
-  (zipmap dependencies
-          (map  (fn [[dependency version]] (project-dependency-map dependency version)) dependencies)))
+  ([dependency]
+   (project-dependency-map dependency (fetch-dependencies-from-pom dependency)))
+  ([[project version :as dependency] dependencies]
+   (zipmap dependencies
+           (map project-dependency-map dependencies))))
+
+#_(defn check-dependency-mismatch
+    [project dependency-map]
+    {project (keys dependency-map)}
+    (reduce (fn [])))
 
 (defn validate
   [project & args]
   (let [{:keys [name version dependencies]} project]
-    (-> (project-dependency-map [name version]
-                                (map #(vector (first %) (second %)) dependencies)) ;; ignore exclusions)
-        clojure.pprint/pprint)))
+    (->> dependencies
+         (map (fn [[project version & _]] [project version])) ;; ignore exclusions
+         (project-dependency-map [name version])
+         #_(check-dependency-mismatch [name version])
+         pprint/pprint)))
 
 #_(clojure.pprint/pprint (project-dependency-map ["lambdawerk/ess" "0.66.0-SNAPSHOT"]
                                                  (fetch-dependencies-from-pom ["lambdawerk/ess" "0.66.0-SNAPSHOT"])))
