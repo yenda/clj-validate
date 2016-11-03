@@ -55,10 +55,10 @@
          (map :content)
          (mapv clean-dependency))
     (catch java.net.MalformedURLException _
-      (println project-full-name version "could not be found, the pom file probably includes some variable version numbers")
+      #_(println project-full-name version "could not be found, the pom file probably includes some variable version numbers")
       nil)
     (catch java.io.FileNotFoundException _
-      (println project-full-name version "could not be found, run lein deps or ignore this message")
+      #_(println project-full-name version "could not be found, run lein deps or ignore this message")
       nil)))
 
 (defn project-dependency-map
@@ -68,19 +68,26 @@
    (zipmap dependencies
            (map project-dependency-map dependencies))))
 
-#_(defn check-dependency-mismatch
-    [project dependency-map]
-    {project (keys dependency-map)}
-    (reduce (fn [])))
+(defn check-dependency-mismatch*
+  [project dependency-map]
+  (->> (reduce (fn [acc [[name version :as dependency] dependencies]]
+                 (-> acc
+                     (update-in [name version] #(if %1 (conj %1 %2) [%2]) project)
+                     (deep-merge (check-dependency-mismatch* dependency dependencies))))
+               {}
+               dependency-map)))
+
+(defn check-dependency-mismatch
+  [project dependency-map]
+  (->> (check-dependency-mismatch* project dependency-map)
+       (filter #(< 1 (count (second %))))
+       (into {})))
 
 (defn validate
   [project & args]
   (let [{:keys [name version dependencies]} project]
     (->> dependencies
-         (map (fn [[project version & _]] [project version])) ;; ignore exclusions
+         (map (fn [[project version & _]] [(str project) version])) ;; ignore exclusions
          (project-dependency-map [name version])
-         #_(check-dependency-mismatch [name version])
+         (check-dependency-mismatch [name version])
          pprint/pprint)))
-
-#_(clojure.pprint/pprint (project-dependency-map ["lambdawerk/ess" "0.66.0-SNAPSHOT"]
-                                                 (fetch-dependencies-from-pom ["lambdawerk/ess" "0.66.0-SNAPSHOT"])))
