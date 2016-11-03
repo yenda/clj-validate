@@ -74,25 +74,40 @@
            (map project-dependency-map dependencies))))
 
 (defn check-dependency-mismatch*
-  [project dependency-map]
+  [parents project dependency-map]
   (->> (reduce (fn [acc [[name version :as dependency] dependencies]]
                  (-> acc
-                     (update-in [name version] #(if %1 (conj %1 %2) [%2]) project)
-                     (deep-merge (check-dependency-mismatch* dependency dependencies))))
+                     (update-in [name version] #(if %1 (conj %1 (conj parents %2)) [parents %2]) project)
+                     (deep-merge (check-dependency-mismatch* (conj parents project) dependency dependencies))))
                {}
                dependency-map)))
 
 (defn check-dependency-mismatch
   [project dependency-map]
-  (->> (check-dependency-mismatch* project dependency-map)
+  (->> (check-dependency-mismatch* [] project dependency-map)
        (filter #(< 1 (count (second %))))
        (into {})))
 
+(defn mismatches-printer
+  [mismatches]
+  (doseq [[dependency versions] mismatches]
+    (println dependency)
+    (println "--------------------------------------------------------------------")
+    (doseq [[version usages] versions]
+      (println "*" version)
+      (doseq [usage usages]
+        (println "  -" (if (string? (first usage))
+                         usage
+                         (clojure.string/join " -> " (map str usage)))))
+      (println))
+    (println "====================================================================")))
+
 (defn validate
   [project & args]
-  (let [{:keys [name version dependencies]} project]
+  (let [{:keys [name version dependencies]} project
+        printer (if args mismatches-printer pprint/pprint)]
     (->> dependencies
          (map (fn [[project version & _]] [(str project) version])) ;; ignore exclusions
          (project-dependency-map [name version])
          (check-dependency-mismatch [name version])
-         pprint/pprint)))
+         printer)))
