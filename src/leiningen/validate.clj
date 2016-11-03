@@ -77,7 +77,7 @@
   [parents project dependency-map]
   (->> (reduce (fn [acc [[name version :as dependency] dependencies]]
                  (-> acc
-                     (update-in [name version] #(if %1 (conj %1 (conj parents %2)) [parents %2]) project)
+                     (update-in [name version] #(if %1 (conj %1 (conj parents %2)) [(conj parents %2)]) project)
                      (deep-merge (check-dependency-mismatch* (conj parents project) dependency dependencies))))
                {}
                dependency-map)))
