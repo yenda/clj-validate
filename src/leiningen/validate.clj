@@ -28,14 +28,17 @@
   [element]
   (= (:tag element) :dependencies))
 
-(defn clean-dependency
+(defn dependency-to-map
   [dependency]
-  (let [{:keys [groupId artifactId version]} (into {} (map (fn [{:keys [tag content]}]
-                                                             [tag (if (= 1 (count content))
-                                                                    (first content)
-                                                                    content)])
-                                                           dependency))]
-    [(str groupId "/" artifactId) version]))
+  (into {} (map (fn [{:keys [tag content]}]
+                  [tag (if (= 1 (count content))
+                         (first content)
+                         content)])
+                dependency)))
+
+(defn dependency-to-vec
+  [{:keys [groupId artifactId version]}]
+  [(str groupId "/" artifactId) version])
 
 (defn pom-file [project-full-name version]
   (let [[groupId artifactId] (clojure.string/split (str project-full-name) #"/")
@@ -53,7 +56,9 @@
          first
          :content
          (map :content)
-         (mapv clean-dependency))
+         (map dependency-to-map)
+         (remove #(= "test" (:scope %)))
+         (mapv dependency-to-vec))
     (catch java.net.MalformedURLException _
       #_(println project-full-name version "could not be found, the pom file probably includes some variable version numbers")
       nil)
